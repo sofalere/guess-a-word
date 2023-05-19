@@ -151,7 +151,7 @@ document.addEventListener("DOMContentLoaded", e => {
       }
       
       if ((this.word).includes(guess)) {
-        //reveal matching
+        this.reveal(guess);
         this.correct++;
         if (this.correct === this.word.length) {
           this.gameOver(true);
@@ -160,12 +160,31 @@ document.addEventListener("DOMContentLoaded", e => {
       } else {
         this.incorrect++;
         this.guessedLetters.push(guess);
-        //drops apple
+        this.createWrongGuess();
+        this.dropApple();
       }
 
-      if (this.correct + this.incorrect === this.MAX_GUESSES) {
+      if (this.incorrect === this.MAX_GUESSES) {
         this.gameOver(false)
       }
+    },
+
+    reveal(guess) {
+      let spaces = document.querySelectorAll("#spaces span");
+      this.word.forEach((letter, ind) => {
+        if (guess === letter) {
+          spaces[ind].innerText = letter;
+        }
+      })
+    },
+
+    createWrongGuess() {
+      let wrongGuess = `<span>${this.guessedLetters.slice(-1)}</span`;
+      guesses.insertAdjacentHTML("beforeend", wrongGuess);
+    },
+
+    dropApple() {
+      tree.querySelector("#apples").classList.add(`guess_${this.incorrect}`);
     },
 
     gameOver(win) {

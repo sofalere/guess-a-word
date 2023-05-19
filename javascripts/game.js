@@ -48,19 +48,41 @@ core concepts:
 
   Game
   has: 
-    guesses
+    incorrect
+    correct
     MAX_GUESSES = 6;
     word
-    revealedChars
-    guessedChars
+    guessedLetters
   
   does:
-    checks if guessed character is in the word
-      yes: reveals correct character
-      no: adds to guessedChars
-          drops apple
+    keyup event listner for alph letters
+
+        check if guessed character is in the word
+          yes: reveal all matching characters
+              increment correct
+              check if correct === the unique letters in word
+                yes: gameOver(win)
+                no: 
+                  check if correct + incorrect < max
+                    yes: continue
+                    no: gameOver(lose)
+
+          no: add to guessedLetters
+              increment incorrect
+              drops apple
+
+  revealLetter
     
-    checks that there are still guesses left
+  gameOver: 
+    win message/ background
+    unbind key event
+    display play again
+
+  play again link:
+    "#replay"
+    preventDefault
+    new Game()
+
 
 */
 document.addEventListener("DOMContentLoaded", e => {
@@ -68,7 +90,6 @@ document.addEventListener("DOMContentLoaded", e => {
   let message = document.querySelector("#message");
   let letters = document.querySelector("#spaces");
   let guesses = document.querySelector("#guesses");
-
 
   let randomWord = (function() {
     let words = ['potato', 'hiking', 'chicken', 'cat'];
@@ -85,8 +106,8 @@ document.addEventListener("DOMContentLoaded", e => {
   function Game() {
     this.word = randomWord().split('');
       if (this.word === undefined) {
-        console.log('Sorry no more words');
-        return;
+        this.changeMessage('Sorry no more words');
+        return this;
       }
     this.incorrect = 0;
     this.correct = 0;
@@ -113,7 +134,50 @@ document.addEventListener("DOMContentLoaded", e => {
     
     init() {
       this.createBlanks();
+      this.enableKeyEvent();
+      this.MAX_GUESSES = 6;
+      
     },
+
+    enableKeyEvent() {
+      document.addEventListener("keyup", this.gameEngine.bind(this));
+    },
+
+    gameEngine(e) {
+      const guess = e.key;
+        
+      if ((guess).match(/[^a-z]/) || this.guessedLetters.includes(guess)) {
+         return;
+      }
+      
+      if ((this.word).includes(guess)) {
+        //reveal matching
+        this.correct++;
+        if (this.correct === this.word.length) {
+          this.gameOver(true);
+          return;
+        }
+      } else {
+        this.incorrect++;
+        this.guessedLetters.push(guess);
+        //drops apple
+      }
+
+      if (this.correct + this.incorrect === this.MAX_GUESSES) {
+        this.gameOver(false)
+      }
+    },
+
+    gameOver(win) {
+      if (win) {
+        this.changeMessage('win');
+      } else {
+        this.changeMessage('loose');
+      }
+
+      // document.removeEventListener("keyup", this.gameEngine);
+      // <a id="replay" href="#">Play another</a>
+    }
   };
 
   new Game();

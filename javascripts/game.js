@@ -1,98 +1,12 @@
-/*
-OBJECTIVE
-guessa word game: the user is presented with a series of blank spaces to represent characters in a word that the user is guessing
-
-user incorrect a letter via keyboard: 
-`guesses` incremented
-  correct: all instances of letter are filled in
-  incorrec: an apple falls from the tree
-
-win: all letters in word are guessed, guesses < 7
-  - background blue
-  - congrats message
-  - `play another` link displays
-
-loose: still have not filled in letters, guesses === 6
-  - background red
-  - sorry message
-  - `play another` link displays
-
-words array: 
-  - contains words
-  - each used worder removed
-
-play another:
-  - reset apples
-  - empty word and guesses area
-  - new word 
-  - if no words left: display message
-
-
-core concepts:
-  randomWord
-  - array of words
-  - pcik random one
-  - return it
-  - delete from array
-  - return undefined when no words are left
-  maybe use an IIFE when initializing game to return a funciton that has access to the array
-
-  resetGame
-  - new word
-    if undefined:
-      - red background
-      - words all gone message
-  - new apples
-  - empty areas
-  - guesses = 0
-
-  Game
-  has: 
-    incorrect
-    correct
-    MAX_GUESSES = 6;
-    word
-    guessedLetters
-  
-  does:
-    keyup event listner for alph letters
-
-        check if guessed character is in the word
-          yes: reveal all matching characters
-              increment correct
-              check if correct === the unique letters in word
-                yes: gameOver(win)
-                no: 
-                  check if correct + incorrect < max
-                    yes: continue
-                    no: gameOver(lose)
-
-          no: add to guessedLetters
-              increment incorrect
-              drops apple
-
-  revealLetter
-    
-  gameOver: 
-    win message/ background
-    unbind key event
-    display play again
-
-  play again link:
-    "#replay"
-    preventDefault
-    new Game()
-
-
-*/
 document.addEventListener("DOMContentLoaded", e => {
-  let tree = document.querySelector("#tree");
+  let apples = document.querySelector("#apples");
   let message = document.querySelector("#message");
   let letters = document.querySelector("#spaces");
   let guesses = document.querySelector("#guesses");
+  let replay  = document.querySelector("#replay")
 
   let randomWord = (function() {
-    let words = ['potato', 'hiking', 'chicken', 'cat'];
+    let words = ['cat', 'potato', 'hiking', 'chicken'];
           
     function getRandomIndex() {
       return Math.floor(Math.random() * words.length);
@@ -104,11 +18,12 @@ document.addEventListener("DOMContentLoaded", e => {
   })();
 
   function Game() {
-    this.word = randomWord().split('');
+    this.word = randomWord();
       if (this.word === undefined) {
-        this.changeMessage('Sorry no more words');
+        this.changeMessage('Sorry no more words.');
         return this;
       }
+    this.word = this.word.split('');
     this.incorrect = 0;
     this.correct = 0;
     this.guessedLetters = [];
@@ -116,6 +31,8 @@ document.addEventListener("DOMContentLoaded", e => {
   }
 
   Game.prototype = {
+    MAX_GUESSES: 6,
+    
     createBlanks() {
       let spaces = (new Array(this.word.length + 1)).join("<span></span>");
   
@@ -128,19 +45,30 @@ document.addEventListener("DOMContentLoaded", e => {
       this.spaces = document.querySelectorAll("#spaces span");
     },
 
+    removeLetters() {
+      document.querySelectorAll("span").forEach(letter => letter.remove());
+    },
+
     changeMessage(text) {
       message.innerText = text;
     },
     
     init() {
+      this.removeLetters();
       this.createBlanks();
-      this.enableKeyEvent();
-      this.MAX_GUESSES = 6;
-      
+      this.bind();
+      this.hideReplayLink();
+      this.changeMessage('');
+      this.drawApples();
     },
 
-    enableKeyEvent() {
-      document.addEventListener("keyup", this.gameEngine.bind(this));
+    bind() {
+      this.gameEngineHandler = (e) => this.gameEngine(e);
+      document.addEventListener("keyup", this.gameEngineHandler);
+    },
+
+    unbind() {
+      document.removeEventListener("keyup", this.gameEngineHandler);
     },
 
     gameEngine(e) {
@@ -151,16 +79,15 @@ document.addEventListener("DOMContentLoaded", e => {
       }
       
       if ((this.word).includes(guess)) {
-        this.reveal(guess);
-        this.correct++;
+        this.displayCorrectGuess(guess);
+
         if (this.correct === this.word.length) {
           this.gameOver(true);
           return;
         }
       } else {
-        this.incorrect++;
         this.guessedLetters.push(guess);
-        this.createWrongGuess();
+        this.displayWrongGuess();
         this.dropApple();
       }
 
@@ -169,35 +96,54 @@ document.addEventListener("DOMContentLoaded", e => {
       }
     },
 
-    reveal(guess) {
+    displayCorrectGuess(guess) {
       let spaces = document.querySelectorAll("#spaces span");
       this.word.forEach((letter, ind) => {
         if (guess === letter) {
           spaces[ind].innerText = letter;
+          this.correct++;
         }
       })
     },
 
-    createWrongGuess() {
+    displayWrongGuess() {
       let wrongGuess = `<span>${this.guessedLetters.slice(-1)}</span`;
       guesses.insertAdjacentHTML("beforeend", wrongGuess);
+      this.incorrect++;
     },
 
     dropApple() {
-      tree.querySelector("#apples").classList.add(`guess_${this.incorrect}`);
+      apples.classList.add(`guess_${this.incorrect}`);
+    },
+
+    drawApples() {
+      apples.className = '';
     },
 
     gameOver(win) {
       if (win) {
-        this.changeMessage('win');
+        this.changeMessage('Congrats you win!');
       } else {
-        this.changeMessage('loose');
+        this.changeMessage("Sorry, you're out of guesses.");
       }
 
-      // document.removeEventListener("keyup", this.gameEngine);
-      // <a id="replay" href="#">Play another</a>
-    }
+      this.showReplayLink();
+      this.unbind();
+    },
+
+    showReplayLink() {
+      replay.classList.add("visible");
+    },
+    
+    hideReplayLink() {
+      replay.classList.remove("visible");
+    },
   };
+
+  replay.addEventListener("click", (e) => {
+    e.preventDefault();
+    new Game();
+  });
 
   new Game();
 });
